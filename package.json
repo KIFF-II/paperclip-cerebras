@@ -1,6 +1,6 @@
 {
   "name": "@kiffcollective/paperclip-cerebras",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Paperclip external adapter that runs agents on Cerebras Inference through OpenCode.",
   "keywords": [
     "cerebras",
