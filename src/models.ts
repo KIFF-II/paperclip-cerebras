@@ -24,7 +24,11 @@ export type CerebrasModelResolution =
 export function resolveCerebrasModel(raw: unknown): CerebrasModelResolution {
   const value = typeof raw === "string" ? raw.trim() : "";
   if (!value) {
-    return { ok: true, model: DEFAULT_CEREBRAS_MODEL, bareModel: stripProvider(DEFAULT_CEREBRAS_MODEL) };
+    return {
+      ok: true,
+      model: DEFAULT_CEREBRAS_MODEL,
+      bareModel: stripProvider(DEFAULT_CEREBRAS_MODEL),
+    };
   }
   const slash = value.indexOf("/");
   if (slash === -1) {
@@ -39,7 +43,10 @@ export function resolveCerebrasModel(raw: unknown): CerebrasModelResolution {
     };
   }
   if (!bareModel) {
-    return { ok: false, error: `Model "${value}" is missing a model id after "${CEREBRAS_PROVIDER}/".` };
+    return {
+      ok: false,
+      error: `Model "${value}" is missing a model id after "${CEREBRAS_PROVIDER}/".`,
+    };
   }
   return { ok: true, model: `${CEREBRAS_PROVIDER}/${bareModel}`, bareModel };
 }

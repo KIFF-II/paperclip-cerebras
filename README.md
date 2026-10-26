@@ -9,13 +9,13 @@ Cerebras's list of [supported integrations](https://inference-docs.cerebras.ai/i
 Under the hood it calls Paperclip's built-in `opencode_local` adapter and pins it
 to Cerebras:
 
-| Concern | Handled by |
-| --- | --- |
-| Agent loop, file/shell/edit tools, session resume, skills | OpenCode via `@paperclipai/adapter-opencode-local` |
-| Model list, `cerebras/` prefix, rejecting other providers | this adapter |
-| `CEREBRAS_API_KEY` checks and a live Cerebras API probe | this adapter |
-| Billing attribution (`provider`/`biller` = `cerebras`, `metered_api`) | this adapter |
-| Token usage and cost | OpenCode's run report (models.dev pricing) |
+| Concern                                                               | Handled by                                         |
+| --------------------------------------------------------------------- | -------------------------------------------------- |
+| Agent loop, file/shell/edit tools, session resume, skills             | OpenCode via `@paperclipai/adapter-opencode-local` |
+| Model list, `cerebras/` prefix, rejecting other providers             | this adapter                                       |
+| `CEREBRAS_API_KEY` checks and a live Cerebras API probe               | this adapter                                       |
+| Billing attribution (`provider`/`biller` = `cerebras`, `metered_api`) | this adapter                                       |
+| Token usage and cost                                                  | OpenCode's run report (models.dev pricing)         |
 
 Adapter type: `cerebras_local`.
 
@@ -29,28 +29,25 @@ Adapter type: `cerebras_local`.
 
 ## Install
 
-Build the package, then install it from the Board UI's Adapter Manager or
+Install `paperclip-adapter-cerebras` from the Board UI's Adapter Manager, or
 through the API:
 
 ```sh
-npm install
-npm run build
-
 curl -X POST "$PAPERCLIP_URL/api/adapters/install" \
   -H "Content-Type: application/json" \
-  -d '{"packageName": "/absolute/path/to/paperclip-cerebras", "isLocalPath": true}'
+  -d '{"packageName": "paperclip-adapter-cerebras"}'
 ```
 
-Once the package is published to npm, pass `"packageName": "paperclip-adapter-cerebras"`
-without `isLocalPath`.
+To install a local checkout instead, run `npm install && npm run build`, then
+pass the absolute path as `packageName` with `"isLocalPath": true`.
 
 ## Configure an agent
 
-| Field | Notes |
-| --- | --- |
-| `model` | `cerebras/gpt-oss-120b` (default) or `cerebras/qwen-3.8-27b`. The `cerebras/` prefix is optional. Other providers are rejected. |
+| Field                  | Notes                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`                | `cerebras/gpt-oss-120b` (default) or `cerebras/qwen-3.8-27b`. The `cerebras/` prefix is optional. Other providers are rejected.              |
 | `env.CEREBRAS_API_KEY` | Required. Bind it as a secret. A key in the Paperclip host's environment works for local runs only, and the environment test warns about it. |
-| `variant` | Optional reasoning level (`low`/`medium`/`high`), passed to OpenCode as `--variant`. |
+| `variant`              | Optional reasoning level (`low`/`medium`/`high`), passed to OpenCode as `--variant`.                                                         |
 
 The adapter also accepts all other `opencode_local` fields: `cwd`,
 `instructionsFilePath`, `promptTemplate`, `dangerouslySkipPermissions`,
@@ -83,11 +80,110 @@ src/ui-parser.ts      transcript parser (bundled into dist/ui-parser.js, no impo
 
 ## Development
 
+The toolchain is [Vite+](https://viteplus.dev) (`vp`), configured in
+`vite.config.ts`. It covers packaging (tsdown), tests (Vitest), linting
+(Oxlint, type-aware) and formatting (Oxfmt).
+
 ```sh
-npm run build      # tsc + esbuild bundle of the UI parser
-npm test           # vitest (run build first; the UI parser test uses dist/)
-npm run typecheck
+npm install
+npm run build        # vp pack: dist/ for the server, plus a self-contained dist/ui-parser.js
+npm run check        # vp check: format, lint and type checks
+npm run check:fix    # format and apply lint autofixes
+npm test             # vp test (run build first; the UI parser test uses dist/)
 ```
 
 `@paperclipai/adapter-opencode-local` and `@paperclipai/adapter-utils` are
 pinned to the same Paperclip release. Bump them together.
+
+## Releasing
+
+Releases are published by `.github/workflows/release.yml` when a `v*.*.*` tag is
+pushed. The workflow builds, checks and tests the package, publishes it to npm,
+and creates a GitHub release with generated notes. Versions with a prerelease
+suffix (such as `1.2.0-beta.1`) are published under the `next` dist-tag and
+marked as prereleases.
+
+```sh
+npm version patch          # or minor / major; commits and tags vX.Y.Z
+git push --follow-tags
+```
+
+CI (`.github/workflows/ci.yml`) runs the same build, check and test steps on
+every push to `master` and on every pull request.
+
+### One-time setup: npm and GitHub
+
+The workflow uses npm **trusted publishing**. GitHub Actions proves its identity
+to npm with a short-lived OIDC token, so no npm token is stored in GitHub.
+npm no longer recommends long-lived publish tokens. It also generates a signed
+[provenance attestation](https://docs.npmjs.com/generating-provenance-statements)
+for every release automatically, as long as the repository and package are public.
+
+Trusted publishing can't create a new package, so the first version is
+published by hand.
+
+1. **Push the repository to GitHub.** The `repository.url` in `package.json`
+   must exactly match the GitHub repository (currently
+   `github.com/ProbablePrime/paperclip-cerebras`) or npm will reject the
+   publish. Keep the repository public if you want provenance.
+
+2. **Create the `npm` environment on GitHub.** Go to _Settings → Environments →
+   New environment_ and name it `npm`. Optionally add yourself as a required
+   reviewer, so each release waits for your approval before it publishes. No
+   secrets are needed.
+
+3. **Publish the first version manually.** On npmjs.com, log in with 2FA
+   enabled. Then, from a clean checkout:
+
+   ```sh
+   npm login
+   npm install
+   npm publish --access public   # runs build and tests first via prepublishOnly
+   ```
+
+   Then tag that commit: `git tag v0.1.0 && git push origin v0.1.0`. The release
+   workflow sees that `0.1.0` is already on npm, skips the publish, and creates
+   the GitHub release for it.
+
+4. **Add the trusted publisher on npmjs.com.** Go to _Package → Settings →
+   Trusted publishing → GitHub Actions_ and fill in:
+
+   | Field                | Value                |
+   | -------------------- | -------------------- |
+   | Organization or user | `ProbablePrime`      |
+   | Repository           | `paperclip-cerebras` |
+   | Workflow filename    | `release.yml`        |
+   | Environment name     | `npm`                |
+   | Allowed actions      | `npm publish`        |
+
+   The fields are case-sensitive, and npm only validates them at publish time.
+   **The configuration expires if no publish succeeds through it within 48
+   hours**, so cut the next release (step 6) soon after saving it. If it
+   expires, delete it and add it again.
+
+5. **Lock down token publishing.** In _Package → Settings → Publishing access_,
+   choose **Require two-factor authentication and disallow tokens**. Trusted
+   publishing keeps working because it doesn't use tokens.
+
+6. **Release.** Run `npm version patch` and then `git push --follow-tags`. Watch the
+   _Release_ workflow in the Actions tab.
+
+#### Optional: approve each release on npmjs.com
+
+To require manual approval on npmjs.com for each release, set _Allowed actions_
+to `npm stage publish` only. Then change the publish command in `release.yml`
+to `npm stage publish`. Each release then waits in npm's staged queue until a
+maintainer approves it with 2FA. Without that approval, a compromised
+workflow can't publish on its own.
+
+#### Troubleshooting
+
+- **`E404` / `ENEEDAUTH` on publish:** the trusted publisher fields don't match
+  the run. Check the owner, repository, workflow filename (`release.yml`) and
+  environment (`npm`), all case-sensitive. Also check that the configuration
+  hasn't expired.
+- **Provenance error about the repository:** `repository.url` in `package.json`
+  doesn't match the GitHub repository the workflow ran in.
+- **Tag/version mismatch:** the workflow refuses to publish when the tag
+  (`v1.2.3`) doesn't match `version` in `package.json`. Use `npm version` to
+  bump both together.

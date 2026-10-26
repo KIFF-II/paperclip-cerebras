@@ -1,5 +1,5 @@
 import type { AdapterExecutionContext, AdapterExecutionResult } from "@paperclipai/adapter-utils";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const openCodeExecute = vi.fn<(ctx: AdapterExecutionContext) => Promise<AdapterExecutionResult>>();
 
@@ -13,10 +13,19 @@ vi.mock("@paperclipai/adapter-opencode-local/server", () => ({
 
 const { execute } = await import("../src/server/execute.js");
 
-function makeContext(config: Record<string, unknown>, overrides: Partial<AdapterExecutionContext> = {}): AdapterExecutionContext {
+function makeContext(
+  config: Record<string, unknown>,
+  overrides: Partial<AdapterExecutionContext> = {},
+): AdapterExecutionContext {
   return {
     runId: "run-1",
-    agent: { id: "agent-1", companyId: "co-1", name: "Builder", adapterType: "cerebras_local", adapterConfig: config },
+    agent: {
+      id: "agent-1",
+      companyId: "co-1",
+      name: "Builder",
+      adapterType: "cerebras_local",
+      adapterConfig: config,
+    },
     runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
     config,
     context: {},
@@ -46,13 +55,21 @@ describe("execute", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("delegates to OpenCode with a cerebras/ model and attributes billing to Cerebras", async () => {
-    const result = await execute(makeContext({ model: "qwen-3.8-27b", env: { CEREBRAS_API_KEY: "csk-test" } }));
+    const result = await execute(
+      makeContext({ model: "qwen-3.8-27b", env: { CEREBRAS_API_KEY: "csk-test" } }),
+    );
 
     expect(openCodeExecute).toHaveBeenCalledOnce();
     const passed = openCodeExecute.mock.calls[0]![0];
     expect(passed.config.model).toBe("cerebras/qwen-3.8-27b");
     expect(passed.config.env).toEqual({ CEREBRAS_API_KEY: "csk-test" });
-    expect(result).toMatchObject({ exitCode: 0, provider: "cerebras", biller: "cerebras", billingType: "metered_api", costUsd: 0.0001 });
+    expect(result).toMatchObject({
+      exitCode: 0,
+      provider: "cerebras",
+      biller: "cerebras",
+      billingType: "metered_api",
+      costUsd: 0.0001,
+    });
     expect(result.sessionParams).toEqual({ sessionId: "ses_1" });
   });
 
@@ -77,7 +94,9 @@ describe("execute", () => {
   });
 
   it("refuses non-Cerebras models", async () => {
-    const result = await execute(makeContext({ model: "openai/gpt-5.5", env: { CEREBRAS_API_KEY: "csk-test" } }));
+    const result = await execute(
+      makeContext({ model: "openai/gpt-5.5", env: { CEREBRAS_API_KEY: "csk-test" } }),
+    );
 
     expect(openCodeExecute).not.toHaveBeenCalled();
     expect(result).toMatchObject({ exitCode: 1, errorFamily: "configuration" });
@@ -94,7 +113,10 @@ describe("execute", () => {
 
   it("does not let a host-only key stand in for a remote target", async () => {
     vi.stubEnv("CEREBRAS_API_KEY", "csk-host");
-    const executionTarget = { kind: "remote", transport: "ssh" } as unknown as AdapterExecutionContext["executionTarget"];
+    const executionTarget = {
+      kind: "remote",
+      transport: "ssh",
+    } as unknown as AdapterExecutionContext["executionTarget"];
 
     const result = await execute(makeContext({}, { executionTarget }));
 

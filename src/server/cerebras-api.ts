@@ -1,6 +1,11 @@
 import type { AdapterModel } from "@paperclipai/adapter-utils";
 import { parseObject } from "@paperclipai/adapter-utils/server-utils";
-import { CEREBRAS_API_BASE_URL, CEREBRAS_API_KEY_ENV, CEREBRAS_PROVIDER, models as staticModels } from "../models.js";
+import {
+  CEREBRAS_API_BASE_URL,
+  CEREBRAS_API_KEY_ENV,
+  CEREBRAS_PROVIDER,
+  models as staticModels,
+} from "../models.js";
 
 export type CerebrasApiKeySource =
   | { kind: "config"; value: string }
@@ -33,7 +38,12 @@ export function readCerebrasApiKey(
 
 export type CerebrasModelsProbe =
   | { ok: true; modelIds: string[] }
-  | { ok: false; reason: "unauthorized" | "http_error" | "network"; status?: number; detail: string };
+  | {
+      ok: false;
+      reason: "unauthorized" | "http_error" | "network";
+      status?: number;
+      detail: string;
+    };
 
 export async function fetchCerebrasModelIds(
   apiKey: string,
@@ -47,13 +57,27 @@ export async function fetchCerebrasModelIds(
       signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
     });
   } catch (err) {
-    return { ok: false, reason: "network", detail: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      reason: "network",
+      detail: err instanceof Error ? err.message : String(err),
+    };
   }
   if (response.status === 401 || response.status === 403) {
-    return { ok: false, reason: "unauthorized", status: response.status, detail: `HTTP ${response.status}` };
+    return {
+      ok: false,
+      reason: "unauthorized",
+      status: response.status,
+      detail: `HTTP ${response.status}`,
+    };
   }
   if (!response.ok) {
-    return { ok: false, reason: "http_error", status: response.status, detail: `HTTP ${response.status}` };
+    return {
+      ok: false,
+      reason: "http_error",
+      status: response.status,
+      detail: `HTTP ${response.status}`,
+    };
   }
   // Response body is untrusted; only keep string ids.
   const body = parseObject(await response.json().catch(() => null));
@@ -72,7 +96,9 @@ let modelsCache: { at: number; models: AdapterModel[] } | null = null;
  * Live model list from the Cerebras API using the host's CEREBRAS_API_KEY.
  * Falls back to the bundled list when no host key is set or the call fails.
  */
-export async function listCerebrasModels(options: { refresh?: boolean; fetchImpl?: typeof fetch } = {}): Promise<AdapterModel[]> {
+export async function listCerebrasModels(
+  options: { refresh?: boolean; fetchImpl?: typeof fetch } = {},
+): Promise<AdapterModel[]> {
   if (!options.refresh && modelsCache && Date.now() - modelsCache.at < MODELS_CACHE_TTL_MS) {
     return modelsCache.models;
   }

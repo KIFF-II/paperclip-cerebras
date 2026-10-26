@@ -1,4 +1,8 @@
-import type { AdapterConfigSchema, AdapterSkillContext, ServerAdapterModule } from "@paperclipai/adapter-utils";
+import type {
+  AdapterConfigSchema,
+  AdapterSkillContext,
+  ServerAdapterModule,
+} from "@paperclipai/adapter-utils";
 import { asString } from "@paperclipai/adapter-utils/server-utils";
 import { SANDBOX_INSTALL_COMMAND } from "@paperclipai/adapter-opencode-local";
 import {
@@ -33,7 +37,11 @@ export async function getConfigSchema(): Promise<AdapterConfigSchema> {
         label: "Cerebras model",
         type: "combobox",
         default: DEFAULT_CEREBRAS_MODEL,
-        options: available.map((model) => ({ value: model.id, label: model.label, group: "Cerebras" })),
+        options: available.map((model) => ({
+          value: model.id,
+          label: model.label,
+          group: "Cerebras",
+        })),
         hint: "Cerebras model id. The cerebras/ prefix is added if you leave it out.",
       },
       {

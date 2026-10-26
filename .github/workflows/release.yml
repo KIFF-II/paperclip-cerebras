@@ -1,0 +1,72 @@
+name: Release
+
+# Publishes to npm with trusted publishing (OIDC): no npm token is stored in
+# GitHub. The npm package's trusted publisher settings must name this file
+# (release.yml) and the "npm" environment. See "Releasing" in README.md.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # mint the OIDC token npm exchanges for a publish credential
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          node-version: "24"
+          cache: true
+
+      - name: Check tag matches package.json version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+
+      - run: vp run build
+      - run: vp check
+      - run: vp test run
+
+      # Trusted publishing needs npm >= 11.5.1; staged publishing needs >= 11.15.0.
+      - name: Update npm
+        run: npm install --global npm@11
+
+      - name: Publish to npm
+        run: |
+          # The first version is published by hand (trusted publishing cannot
+          # create a package), so tolerate a tag whose version is already live.
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          if npm view "${name}@${version}" version >/dev/null 2>&1; then
+            echo "::notice::${name}@${version} is already on npm; skipping publish."
+            exit 0
+          fi
+          # Prerelease versions (1.2.0-beta.1) go to the "next" dist-tag, not "latest".
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then tag=next; else tag=latest; fi
+          # Already built and tested above, so skip prepublishOnly.
+          npm publish --ignore-scripts --access public --tag "${tag}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes "${flags[@]}"

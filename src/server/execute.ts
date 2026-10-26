@@ -63,6 +63,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     provider: CEREBRAS_PROVIDER,
     biller: CEREBRAS_PROVIDER,
     // OpenCode's billing table does not know Cerebras keys and reports "unknown".
-    billingType: !result.billingType || result.billingType === "unknown" ? "metered_api" : result.billingType,
+    billingType:
+      !result.billingType || result.billingType === "unknown" ? "metered_api" : result.billingType,
   };
 }

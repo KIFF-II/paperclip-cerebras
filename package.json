@@ -2,14 +2,27 @@
   "name": "paperclip-adapter-cerebras",
   "version": "0.1.0",
   "description": "Paperclip external adapter that runs agents on Cerebras Inference through OpenCode.",
-  "license": "MIT",
-  "type": "module",
   "keywords": [
-    "paperclip",
-    "paperclip-adapter",
     "cerebras",
-    "opencode"
+    "opencode",
+    "paperclip",
+    "paperclip-adapter"
   ],
+  "homepage": "https://github.com/ProbablePrime/paperclip-cerebras#readme",
+  "bugs": {
+    "url": "https://github.com/ProbablePrime/paperclip-cerebras/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ProbablePrime/paperclip-cerebras.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,21 +32,17 @@
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js"
     },
-    "./ui-parser": "./dist/ui-parser.js"
+    "./ui-parser": "./dist/ui-parser.js",
+    "./package.json": "./package.json"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "paperclip": {
-    "adapterUiParser": "1.0.0"
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
-    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/build-ui-parser.mjs",
-    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && vp pack",
+    "check": "vp check",
+    "check:fix": "vp check --fix",
+    "test": "vp test run",
     "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
@@ -42,11 +51,16 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
-    "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5"
+    "vite-plus": "1.4.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0"
   },
   "engines": {
     "node": ">=24.11.0"
+  },
+  "paperclip": {
+    "adapterUiParser": "1.0.0"
   }
 }
