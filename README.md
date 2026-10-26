@@ -1,4 +1,4 @@
-# paperclip-adapter-cerebras
+# @kiffcollective/paperclip-cerebras
 
 A [Paperclip](https://docs.paperclip.ing) external adapter that runs agents on
 [Cerebras Inference](https://inference-docs.cerebras.ai).
@@ -29,13 +29,13 @@ Adapter type: `cerebras_local`.
 
 ## Install
 
-Install `paperclip-adapter-cerebras` from the Board UI's Adapter Manager, or
+Install `@kiffcollective/paperclip-cerebras` from the Board UI's Adapter Manager, or
 through the API:
 
 ```sh
 curl -X POST "$PAPERCLIP_URL/api/adapters/install" \
   -H "Content-Type: application/json" \
-  -d '{"packageName": "paperclip-adapter-cerebras"}'
+  -d '{"packageName": "@kiffcollective/paperclip-cerebras"}'
 ```
 
 To install a local checkout instead, run `npm install && npm run build`, then
@@ -124,7 +124,7 @@ published by hand.
 
 1. **Push the repository to GitHub.** The `repository.url` in `package.json`
    must exactly match the GitHub repository (currently
-   `github.com/ProbablePrime/paperclip-cerebras`) or npm will reject the
+   `github.com/KIFF-II/paperclip-cerebras`) or npm will reject the
    publish. Keep the repository public if you want provenance.
 
 2. **Create the `npm` environment on GitHub.** Go to _Settings → Environments →
@@ -132,8 +132,9 @@ published by hand.
    reviewer, so each release waits for your approval before it publishes. No
    secrets are needed.
 
-3. **Publish the first version manually.** On npmjs.com, log in with 2FA
-   enabled. Then, from a clean checkout:
+3. **Publish the first version manually.** The package is scoped, so the
+   `kiffcollective` organization must exist on npmjs.com and your account must
+   be able to publish to it. Log in with 2FA enabled. Then, from a clean checkout:
 
    ```sh
    npm login
@@ -150,7 +151,7 @@ published by hand.
 
    | Field                | Value                |
    | -------------------- | -------------------- |
-   | Organization or user | `ProbablePrime`      |
+   | Organization or user | `KIFF-II`            |
    | Repository           | `paperclip-cerebras` |
    | Workflow filename    | `release.yml`        |
    | Environment name     | `npm`                |
@@ -187,3 +188,7 @@ workflow can't publish on its own.
 - **Tag/version mismatch:** the workflow refuses to publish when the tag
   (`v1.2.3`) doesn't match `version` in `package.json`. Use `npm version` to
   bump both together.
+
+## License
+
+[Apache-2.0](LICENSE)

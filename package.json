@@ -1,5 +1,5 @@
 {
-  "name": "paperclip-adapter-cerebras",
+  "name": "@kiffcollective/paperclip-cerebras",
   "version": "0.1.0",
   "description": "Paperclip external adapter that runs agents on Cerebras Inference through OpenCode.",
   "keywords": [
@@ -8,14 +8,14 @@
     "paperclip",
     "paperclip-adapter"
   ],
-  "homepage": "https://github.com/ProbablePrime/paperclip-cerebras#readme",
+  "homepage": "https://github.com/KIFF-II/paperclip-cerebras#readme",
   "bugs": {
-    "url": "https://github.com/ProbablePrime/paperclip-cerebras/issues"
+    "url": "https://github.com/KIFF-II/paperclip-cerebras/issues"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ProbablePrime/paperclip-cerebras.git"
+    "url": "git+https://github.com/KIFF-II/paperclip-cerebras.git"
   },
   "files": [
     "dist"
