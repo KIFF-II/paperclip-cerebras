@@ -1,0 +1,52 @@
+{
+  "name": "paperclip-adapter-cerebras",
+  "version": "0.1.0",
+  "description": "Paperclip external adapter that runs agents on Cerebras Inference through OpenCode.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "paperclip",
+    "paperclip-adapter",
+    "cerebras",
+    "opencode"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./ui-parser": "./dist/ui-parser.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "paperclip": {
+    "adapterUiParser": "1.0.0"
+  },
+  "scripts": {
+    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/build-ui-parser.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@paperclipai/adapter-opencode-local": "2026.1023.0",
+    "@paperclipai/adapter-utils": "2026.1023.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=24.11.0"
+  }
+}
