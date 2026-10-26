@@ -62,8 +62,17 @@ describe("testEnvironment", () => {
     expect(result.status).toBe("pass");
     expect(result.checks.map((check) => check.code)).toEqual([
       "cerebras_api_key_valid",
+      "cerebras_limits_applied",
       "opencode_command_resolvable",
     ]);
+    expect(
+      JSON.parse(
+        (openCodeTest.mock.calls[0]![0].config.env as Record<string, string>)
+          .PAPERCLIP_OPENCODE_PROVIDERS!,
+      ),
+    ).toEqual({
+      cerebras: { models: { "gpt-oss-120b": { limit: { context: 131_072, output: 16_384 } } } },
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.cerebras.ai/v1/models",
       expect.objectContaining({
@@ -132,6 +141,28 @@ describe("testEnvironment", () => {
 
     expect(result.status).toBe("warn");
     expect(result.checks[0]!.code).toBe("cerebras_api_key_host_env");
+  });
+
+  it("warns when limits cannot be applied", async () => {
+    mockFetch(modelsResponse());
+
+    const result = await testEnvironment(
+      makeContext({ dangerouslySkipPermissions: false, env: { CEREBRAS_API_KEY: "csk-test" } }),
+    );
+
+    expect(result.status).toBe("warn");
+    expect(result.checks.map((check) => check.code)).toContain("cerebras_limits_not_applied");
+  });
+
+  it("reports free tier limits", async () => {
+    mockFetch(modelsResponse());
+
+    const result = await testEnvironment(
+      makeContext({ tier: "free", env: { CEREBRAS_API_KEY: "csk-test" } }),
+    );
+
+    const limits = result.checks.find((check) => check.code === "cerebras_limits_applied");
+    expect(limits?.message).toContain("65536 context tokens, 8192 max output tokens");
   });
 
   it("rejects non-Cerebras models without running OpenCode probes", async () => {

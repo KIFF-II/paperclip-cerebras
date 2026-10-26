@@ -45,6 +45,23 @@ export async function getConfigSchema(): Promise<AdapterConfigSchema> {
         hint: "Cerebras model id. The cerebras/ prefix is added if you leave it out.",
       },
       {
+        key: "tier",
+        label: "Cerebras plan",
+        type: "select",
+        default: "paid",
+        options: [
+          { value: "paid", label: "Developer / paid (131K context)" },
+          { value: "free", label: "Free trial (65K context)" },
+        ],
+        hint: "Sets the context window OpenCode plans around and the default output cap, to match your plan's limits.",
+      },
+      {
+        key: "maxOutputTokens",
+        label: "Max output tokens per request",
+        type: "number",
+        hint: "Optional. Defaults to 16384 (paid) or 8192 (free). Cerebras counts this against your tokens-per-minute limit on every request, so lower values allow more agent steps per minute.",
+      },
+      {
         key: "variant",
         label: "Reasoning variant",
         type: "select",

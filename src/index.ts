@@ -22,6 +22,8 @@ Don't use when:
 Core fields:
 - model (string, optional): Cerebras model id, with or without the "cerebras/" prefix. Defaults to cerebras/gpt-oss-120b
 - env.CEREBRAS_API_KEY (string, required): Cerebras API key from cloud.cerebras.ai. Use a secret ref
+- tier (string, optional): "paid" (default, 131K context) or "free" (65K context). Match your Cerebras plan
+- maxOutputTokens (number, optional): max output tokens per request. Defaults to 16384 (paid) or 8192 (free)
 - cwd (string, optional): default absolute working directory for the agent process
 - instructionsFilePath (string, optional): markdown instructions file prepended to the run prompt
 - variant (string, optional): reasoning variant passed to OpenCode as --variant (e.g. low|medium|high)
@@ -39,6 +41,7 @@ Notes:
 - Models other than cerebras/* are rejected.
 - The environment test checks the key against the Cerebras API before running OpenCode's own probes.
 - Token usage and cost come from OpenCode's run report and are billed to provider "cerebras".
+- The adapter gives OpenCode the plan's context window and an output cap through PAPERCLIP_OPENCODE_PROVIDERS. Cerebras counts each request's max output tokens against the tokens-per-minute limit, so the cap keeps agent steps from being throttled. Requires dangerouslySkipPermissions (the default).
 `;
 
 export { createServerAdapter } from "./server/index.js";

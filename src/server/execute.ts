@@ -4,10 +4,12 @@ import type {
   AdapterInvocationMeta,
 } from "@paperclipai/adapter-utils";
 import { adapterExecutionTargetIsRemote } from "@paperclipai/adapter-utils/execution-target";
+import { asBoolean } from "@paperclipai/adapter-utils/server-utils";
 import { execute as executeOpenCode } from "@paperclipai/adapter-opencode-local/server";
 import { type } from "../index.js";
 import { CEREBRAS_API_KEY_ENV, CEREBRAS_PROVIDER, resolveCerebrasModel } from "../models.js";
 import { readCerebrasApiKey } from "./cerebras-api.js";
+import { withCerebrasOpenCodeLimits } from "./opencode-config.js";
 
 function configurationFailure(errorMessage: string, model: string | null): AdapterExecutionResult {
   return {
@@ -49,10 +51,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     );
   }
 
+  // opencode_local only writes a runtime OpenCode config (and with it the
+  // injected limits) when it auto-approves permissions.
+  if (!asBoolean(ctx.config.dangerouslySkipPermissions, true)) {
+    await ctx.onLog(
+      "stderr",
+      "[cerebras_local] dangerouslySkipPermissions is off, so Cerebras context and output limits are not applied; OpenCode will use catalog limits.\n",
+    );
+  }
+
   const onMeta = ctx.onMeta;
   const result = await executeOpenCode({
     ...ctx,
-    config: { ...ctx.config, model: resolved.model },
+    config: withCerebrasOpenCodeLimits(
+      { ...ctx.config, model: resolved.model },
+      resolved.bareModel,
+    ),
     onMeta: onMeta
       ? (meta: AdapterInvocationMeta) => onMeta({ ...meta, adapterType: type })
       : undefined,

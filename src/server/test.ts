@@ -5,9 +5,11 @@ import type {
   AdapterEnvironmentTestStatus,
 } from "@paperclipai/adapter-utils";
 import { adapterExecutionTargetIsRemote } from "@paperclipai/adapter-utils/execution-target";
+import { asBoolean } from "@paperclipai/adapter-utils/server-utils";
 import { testEnvironment as testOpenCodeEnvironment } from "@paperclipai/adapter-opencode-local/server";
 import { CEREBRAS_API_KEY_ENV, resolveCerebrasModel } from "../models.js";
 import { fetchCerebrasModelIds, readCerebrasApiKey } from "./cerebras-api.js";
+import { resolveCerebrasLimits, withCerebrasOpenCodeLimits } from "./opencode-config.js";
 
 function summarize(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestStatus {
   if (checks.some((check) => check.level === "error")) return "fail";
@@ -115,10 +117,30 @@ export async function testEnvironment(
   }
 
   const checks = await checkCerebrasAccess(ctx, resolved.bareModel);
+  const limits = resolveCerebrasLimits(ctx.config);
+  if (asBoolean(ctx.config.dangerouslySkipPermissions, true)) {
+    checks.push({
+      code: "cerebras_limits_applied",
+      level: "info",
+      message: `Cerebras ${limits.tier} tier limits: ${limits.context} context tokens, ${limits.output} max output tokens per request.`,
+    });
+  } else {
+    checks.push({
+      code: "cerebras_limits_not_applied",
+      level: "warn",
+      message:
+        "Cerebras context and output limits are not applied while dangerouslySkipPermissions is off.",
+      hint: "OpenCode then requests its catalog limits, which can exceed free-tier context and rate limits.",
+    });
+  }
+
   // OpenCode's own probes cover the CLI, cwd, model discovery and a hello run.
   const openCode = await testOpenCodeEnvironment({
     ...ctx,
-    config: { ...ctx.config, model: resolved.model },
+    config: withCerebrasOpenCodeLimits(
+      { ...ctx.config, model: resolved.model },
+      resolved.bareModel,
+    ),
   });
   checks.push(...openCode.checks);
 

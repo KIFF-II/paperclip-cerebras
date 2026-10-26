@@ -48,6 +48,8 @@ pass the absolute path as `packageName` with `"isLocalPath": true`.
 | `model`                | `cerebras/gpt-oss-120b` (default) or `cerebras/qwen-3.8-27b`. The `cerebras/` prefix is optional. Other providers are rejected.              |
 | `env.CEREBRAS_API_KEY` | Required. Bind it as a secret. A key in the Paperclip host's environment works for local runs only, and the environment test warns about it. |
 | `variant`              | Optional reasoning level (`low`/`medium`/`high`), passed to OpenCode as `--variant`.                                                         |
+| `tier`                 | `paid` (default) or `free`. Match your Cerebras plan: it sets the context window OpenCode plans around (131K or 65K).                        |
+| `maxOutputTokens`      | Max output tokens per request. Defaults to 16384 (paid) or 8192 (free), capped at the plan's maximum.                                        |
 
 The adapter also accepts all other `opencode_local` fields: `cwd`,
 `instructionsFilePath`, `promptTemplate`, `dangerouslySkipPermissions`,
@@ -57,6 +59,23 @@ If `CEREBRAS_API_KEY` is set on the Paperclip host, the model picker fetches the
 live list from `GET https://api.cerebras.ai/v1/models`. Otherwise it shows the
 bundled list.
 
+### Cerebras limits
+
+OpenCode reads model limits from the models.dev catalog, which lists Cerebras's
+paid-tier limits (131K context, 40,960 output) and asks for the full output limit
+on every request. Cerebras checks each request against your tokens-per-minute
+limit using the prompt **plus** the requested max output, so on the free tier
+(30K uncached tokens per minute) a single request would already be over the limit, and on
+`qwen-3.8-27b`'s developer tier (150K) each request reserves over 40K.
+
+The adapter therefore passes OpenCode a per-model `limit` through
+`PAPERCLIP_OPENCODE_PROVIDERS`: the plan's context window from `tier`, and an
+output cap from `maxOutputTokens`. Lower the cap for more agent steps per
+minute; raise it if long replies get cut off. A `limit` you set yourself for the
+model in `PAPERCLIP_OPENCODE_PROVIDERS` takes precedence. OpenCode only applies
+injected settings when `dangerouslySkipPermissions` is on (the default); the
+environment test warns otherwise.
+
 ## Environment test
 
 The environment test runs these checks:
@@ -64,7 +83,8 @@ The environment test runs these checks:
 1. The model is a Cerebras model.
 2. `CEREBRAS_API_KEY` is present: in config, as a secret binding, or in the host environment.
 3. Cerebras accepts the key, and the model is available to it. A network failure is a warning, not an error.
-4. OpenCode's own probes pass: CLI on PATH, valid `cwd`, model discovery and a hello run.
+4. The Cerebras limits above will be applied.
+5. OpenCode's own probes pass: CLI on PATH, valid `cwd`, model discovery and a hello run.
 
 ## Package layout
 

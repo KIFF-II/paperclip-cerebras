@@ -62,7 +62,12 @@ describe("execute", () => {
     expect(openCodeExecute).toHaveBeenCalledOnce();
     const passed = openCodeExecute.mock.calls[0]![0];
     expect(passed.config.model).toBe("cerebras/qwen-3.8-27b");
-    expect(passed.config.env).toEqual({ CEREBRAS_API_KEY: "csk-test" });
+    expect(passed.config.env).toEqual({
+      CEREBRAS_API_KEY: "csk-test",
+      PAPERCLIP_OPENCODE_PROVIDERS: JSON.stringify({
+        cerebras: { models: { "qwen-3.8-27b": { limit: { context: 131_072, output: 16_384 } } } },
+      }),
+    });
     expect(result).toMatchObject({
       exitCode: 0,
       provider: "cerebras",
@@ -71,6 +76,19 @@ describe("execute", () => {
       costUsd: 0.0001,
     });
     expect(result.sessionParams).toEqual({ sessionId: "ses_1" });
+  });
+
+  it("warns that limits are not applied when permissions are not auto-approved", async () => {
+    const onLog = vi.fn(async () => {});
+
+    await execute(
+      makeContext(
+        { dangerouslySkipPermissions: false, env: { CEREBRAS_API_KEY: "csk-test" } },
+        { onLog },
+      ),
+    );
+
+    expect(onLog).toHaveBeenCalledWith("stderr", expect.stringContaining("limits are not applied"));
   });
 
   it("rewrites invocation meta to the cerebras_local adapter type", async () => {
