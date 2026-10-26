@@ -46,7 +46,29 @@ jobs:
 
       # Trusted publishing needs npm >= 11.5.1; staged publishing needs >= 11.15.0.
       - name: Update npm
-        run: npm install --global npm@11
+        run: |
+          npm install --global npm@11
+          echo "Using $(command -v npm) $(npm --version)"
+          node -e '
+            const [maj, min, pat] = process.argv[1].split(".").map(Number);
+            if (maj < 11 || (maj === 11 && (min < 5 || (min === 5 && pat < 1)))) {
+              console.log(`::error::npm ${process.argv[1]} is too old for trusted publishing (needs >= 11.5.1)`);
+              process.exit(1);
+            }' "$(npm --version)"
+
+      # npm matches these claims against the package's trusted publisher
+      # settings. Print them (never the token) so a mismatch is easy to spot.
+      - name: Show OIDC claims for npm
+        run: |
+          token="$(curl -sSf -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" \
+            | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).value')"
+          echo "::add-mask::${token}"
+          TOKEN="${token}" node -e '
+            const payload = JSON.parse(Buffer.from(process.env.TOKEN.split(".")[1], "base64url").toString());
+            for (const key of ["repository_owner", "repository", "workflow_ref", "environment", "ref", "event_name", "repository_visibility"]) {
+              console.log(`${key.padEnd(22)} ${payload[key] ?? "(none)"}`);
+            }'
 
       - name: Publish to npm
         run: |
@@ -62,6 +84,11 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then tag=next; else tag=latest; fi
           # Already built and tested above, so skip prepublishOnly.
           npm publish --ignore-scripts --access public --tag "${tag}"
+
+      # npm only logs why the OIDC token exchange failed to its debug log.
+      - name: Show npm OIDC log on failure
+        if: failure()
+        run: grep -h -i "oidc\|exchange" ~/.npm/_logs/*-debug-0.log || echo "No OIDC lines in npm logs."
 
       - name: Create GitHub release
         env:

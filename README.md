@@ -109,7 +109,7 @@ git push --follow-tags
 ```
 
 CI (`.github/workflows/ci.yml`) runs the same build, check and test steps on
-every push to `master` and on every pull request.
+every push to `main` and on every pull request.
 
 ### One-time setup: npm and GitHub
 
@@ -179,10 +179,20 @@ workflow can't publish on its own.
 
 #### Troubleshooting
 
-- **`E404` / `ENEEDAUTH` on publish:** the trusted publisher fields don't match
-  the run. Check the owner, repository, workflow filename (`release.yml`) and
-  environment (`npm`), all case-sensitive. Also check that the configuration
-  hasn't expired.
+- **`ENEEDAUTH` / `E404` on publish:** npm rejected the OIDC token exchange,
+  and npm doesn't say why on the console. Compare the **Show OIDC claims for
+  npm** step's output with the package's trusted publisher settings:
+  `repository_owner` and `repository` must match the owner and repository,
+  `workflow_ref` must point at `.github/workflows/release.yml`, and
+  `environment` must match the environment name (`npm`). All of these are
+  case-sensitive. The **Show npm OIDC log on failure** step prints npm's own
+  reason. Also check that the configuration hasn't expired (48 hours without a
+  successful publish), and that it was saved on this package.
+- **Retrying a failed release:** _Re-run jobs_ reuses the workflow file from the
+  tagged commit, so it won't pick up workflow fixes. If nothing was published,
+  move the tag to the fixed commit instead:
+  `git tag -f vX.Y.Z && git push -f origin vX.Y.Z`. If only the npm settings
+  changed, re-running the job is enough.
 - **Provenance error about the repository:** `repository.url` in `package.json`
   doesn't match the GitHub repository the workflow ran in.
 - **Tag/version mismatch:** the workflow refuses to publish when the tag
