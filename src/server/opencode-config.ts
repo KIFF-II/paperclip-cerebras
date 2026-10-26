@@ -17,9 +17,9 @@ const TIER_LIMITS: Record<CerebrasTier, { context: number; output: number }> = {
 
 /**
  * Cerebras estimates each request against the tokens-per-minute budget as
- * prompt + max_completion_tokens, and OpenCode requests the model's full output
- * limit. Capping it keeps one request from reserving most of the budget: the
- * free tier allows only 30K uncached tokens per minute.
+ * prompt + max_completion_tokens, and OpenCode requests the model's output
+ * limit up to 32,000. Capping it keeps one request from reserving most of the
+ * budget: the free tier allows only 30K uncached tokens per minute.
  */
 const DEFAULT_MAX_OUTPUT_TOKENS: Record<CerebrasTier, number> = {
   free: 8_192,

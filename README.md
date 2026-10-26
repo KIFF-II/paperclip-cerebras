@@ -62,11 +62,12 @@ bundled list.
 ### Cerebras limits
 
 OpenCode reads model limits from the models.dev catalog, which lists Cerebras's
-paid-tier limits (131K context, 40,960 output) and asks for the full output limit
-on every request. Cerebras checks each request against your tokens-per-minute
-limit using the prompt **plus** the requested max output, so on the free tier
-(30K uncached tokens per minute) a single request would already be over the limit, and on
-`qwen-3.8-27b`'s developer tier (150K) each request reserves over 40K.
+paid-tier limits (131K context, 40,960 output), and asks for the output limit
+capped at 32,000 tokens on every request. Cerebras checks each request against
+your tokens-per-minute limit using the prompt **plus** the requested max output,
+so on the free tier (30K uncached tokens per minute) a single request would
+already be over the limit, and on `qwen-3.8-27b`'s developer tier (150K) each
+request reserves 32K plus its prompt.
 
 The adapter therefore passes OpenCode a per-model `limit` through
 `PAPERCLIP_OPENCODE_PROVIDERS`: the plan's context window from `tier`, and an
